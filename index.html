@@ -1,19 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lowkey Memory Check🥀</title>
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
   <style>
     body {
+      margin: 0;
+      padding: 20px;
       background: linear-gradient(135deg, #0d0d12, #141421);
       background-size: 200% 200%;
       animation: bgShift 10s ease infinite;
       color: #e5e7eb;
       font-family: 'Poppins', sans-serif;
       text-align: center;
-      transition: background 0.3s;
       overflow-x: hidden;
+      min-height: 100vh;
     }
 
     @keyframes bgShift {
@@ -33,15 +37,16 @@
     }
 
     h1 {
-      margin-top: 20px;
-      letter-spacing: 1px;
+      margin-top: 10px;
+      font-size: clamp(22px, 4vw, 32px);
     }
 
     .grid {
       display: grid;
       gap: 14px;
-      justify-content: center;
-      margin-top: 30px;
+      margin: 30px auto;
+      width: 95%;
+      max-width: 600px;
     }
 
     .card {
@@ -67,12 +72,12 @@
       position: absolute;
       width: 100%;
       height: 100%;
-      border-radius: 12px;
+      border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
       backface-visibility: hidden;
-      font-size: 24px;
+      font-size: clamp(18px, 4vw, 26px);
     }
 
     .card-front {
@@ -94,12 +99,13 @@
     button {
       margin: 6px;
       padding: 8px 16px;
-      border-radius: 8px;
+      border-radius: 10px;
       border: 1px solid #2e2e3a;
       background: #1c1c24;
       color: #e5e7eb;
       cursor: pointer;
       transition: 0.2s ease;
+      font-family: inherit;
     }
 
     button:hover {
@@ -143,14 +149,6 @@
 <p id="status"></p>
 <div class="grid" id="grid"></div>
 
-<audio id="beepSound">
-  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
-</audio>
-
-<audio id="matchSound">
-  <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
-</audio>
-
 <script>
   const allEmojis = [
     "💖","🌝","🐉","👾","🚀","👽","🍂","🐶",
@@ -159,9 +157,6 @@
 
   const grid = document.getElementById("grid");
   const statusText = document.getElementById("status");
-  const beepSound = document.getElementById("beepSound");
-  const matchSound = document.getElementById("matchSound");
-
   const scoreDisplay = document.getElementById("score");
   const streakDisplay = document.getElementById("streak");
   const highScoreDisplay = document.getElementById("highscore");
@@ -179,46 +174,6 @@
 
   let highScore = localStorage.getItem("memoryHighScore") || 0;
   highScoreDisplay.textContent = highScore;
-
-  function showKiss(level) {
-    let kissCount = level === "veryhard" ? 60 : 25;
-    for (let i = 0; i < kissCount; i++) {
-      setTimeout(() => {
-        const kiss = document.createElement("div");
-        kiss.textContent = "💋";
-        kiss.classList.add("kiss");
-        kiss.style.left = Math.random() * 100 + "vw";
-        kiss.style.top = Math.random() * 100 + "vh";
-        kiss.style.fontSize = (40 + Math.random() * 60) + "px";
-        document.body.appendChild(kiss);
-        setTimeout(() => kiss.remove(), 2500);
-      }, i * 40);
-    }
-  }
-
-  function startTimer(seconds) {
-    timeLeft = seconds;
-    statusText.textContent = "Time Left: " + timeLeft;
-
-    timerInterval = setInterval(() => {
-      timeLeft--;
-      statusText.textContent = "Time Left: " + timeLeft;
-
-      if (timeLeft <= 10 && timeLeft > 0) {
-        document.body.classList.add("danger");
-        beepSound.play();
-      }
-
-      if (timeLeft <= 0) {
-        clearInterval(timerInterval);
-        lock = true;
-        document.body.classList.remove("danger");
-        statusText.textContent = "HAHA L";
-        streak = 0;
-        streakDisplay.textContent = streak;
-      }
-    }, 1000);
-  }
 
   function startGame(level) {
     clearInterval(timerInterval);
@@ -238,14 +193,12 @@
     const selected = allEmojis.slice(0, pairs);
     const emojis = [...selected, ...selected].sort(() => 0.5 - Math.random());
 
+    // RESPONSIVE GRID
     grid.style.gridTemplateColumns =
-      level === "easy" ? "repeat(4, 90px)" :
-      level === "medium" ? "repeat(5, 80px)" :
-      level === "hard" ? "repeat(6, 70px)" :
-      "repeat(8, 60px)";
-
-    if (level === "hard") startTimer(45);
-    if (level === "veryhard") startTimer(30);
+      level === "easy" ? "repeat(4, 1fr)" :
+      level === "medium" ? "repeat(5, 1fr)" :
+      level === "hard" ? "repeat(6, 1fr)" :
+      "repeat(8, 1fr)";
 
     emojis.forEach(emoji => {
       const card = document.createElement("div");
@@ -269,19 +222,14 @@
         } else {
           if (firstCard.dataset.emoji === card.dataset.emoji) {
             matches++;
-            matchSound.play();
             card.classList.add("matched");
             firstCard.classList.add("matched");
             firstCard = null;
 
             if (matches === totalPairs) {
-              clearInterval(timerInterval);
-              document.body.classList.remove("danger");
               statusText.textContent = "OKAY FINE YOU WIN 😒";
-
               score += pairs * 10;
               streak++;
-
               scoreDisplay.textContent = score;
               streakDisplay.textContent = streak;
 
@@ -290,8 +238,6 @@
                 localStorage.setItem("memoryHighScore", highScore);
                 highScoreDisplay.textContent = highScore;
               }
-
-              showKiss(level);
             }
           } else {
             lock = true;
