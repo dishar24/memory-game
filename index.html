@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lowkey Memory Check🥀</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #0d0d12, #141421);
+      background-size: 200% 200%;
+      animation: bgShift 10s ease infinite;
+      color: #e5e7eb;
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+      transition: background 0.3s;
+      overflow-x: hidden;
+    }
+
+    @keyframes bgShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    body.danger {
+      animation: flashRed 0.5s infinite;
+    }
+
+    @keyframes flashRed {
+      0% { background: #0d0d12; }
+      50% { background: #2a0f16; }
+      100% { background: #0d0d12; }
+    }
+
+    h1 {
+      margin-top: 20px;
+      letter-spacing: 1px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+
+    .card {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      perspective: 1000px;
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front,
+    .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backface-visibility: hidden;
+      font-size: 24px;
+    }
+
+    .card-front {
+      background: #1c1c24;
+      border: 1px solid #2e2e3a;
+    }
+
+    .card-back {
+      background: #7f448d;
+      color: white;
+      transform: rotateY(180deg);
+      box-shadow: 0 0 18px rgba(183, 100, 255, 0.4);
+    }
+
+    .card.matched .card-back {
+      box-shadow: 0 0 25px rgba(165, 109, 182, 0.7);
+    }
+
+    button {
+      margin: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #2e2e3a;
+      background: #1c1c24;
+      color: #e5e7eb;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    button:hover {
+      background: #2a2a35;
+      transform: scale(1.05);
+    }
+
+    .kiss {
+      position: fixed;
+      pointer-events: none;
+      animation: floatUp 2.5s ease-out forwards;
+      opacity: 0;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(30px) scale(0.8); opacity: 0; }
+      30% { opacity: 1; }
+      100% { transform: translateY(-150px) scale(1.2); opacity: 0; }
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Lowkey Memory Check🥀</h1>
+
+<div>
+  <button onclick="startGame('easy')">Easy</button>
+  <button onclick="startGame('medium')">Medium</button>
+  <button onclick="startGame('hard')">Hard</button>
+  <button onclick="startGame('veryhard')">Very Hard 💀</button>
+</div>
+
+<div>
+  <p>Score: <span id="score">0</span></p>
+  <p>High Score: <span id="highscore">0</span></p>
+  <p>Streak: <span id="streak">0</span></p>
+  <button onclick="restartGame()">RESTART 🔁</button>
+</div>
+
+<p id="status"></p>
+<div class="grid" id="grid"></div>
+
+<audio id="beepSound">
+  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+</audio>
+
+<audio id="matchSound">
+  <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
+</audio>
+
+<script>
+  const allEmojis = [
+    "💖","🌝","🐉","👾","🚀","👽","🍂","🐶",
+    "🧠","🎧","💅","🌈","⚡","🍒","💔","💎"
+  ];
+
+  const grid = document.getElementById("grid");
+  const statusText = document.getElementById("status");
+  const beepSound = document.getElementById("beepSound");
+  const matchSound = document.getElementById("matchSound");
+
+  const scoreDisplay = document.getElementById("score");
+  const streakDisplay = document.getElementById("streak");
+  const highScoreDisplay = document.getElementById("highscore");
+
+  let firstCard = null;
+  let lock = false;
+  let matches = 0;
+  let totalPairs = 0;
+  let timerInterval = null;
+  let timeLeft = 0;
+
+  let score = 0;
+  let streak = 0;
+  let currentLevel = null;
+
+  let highScore = localStorage.getItem("memoryHighScore") || 0;
+  highScoreDisplay.textContent = highScore;
+
+  function showKiss(level) {
+    let kissCount = level === "veryhard" ? 60 : 25;
+    for (let i = 0; i < kissCount; i++) {
+      setTimeout(() => {
+        const kiss = document.createElement("div");
+        kiss.textContent = "💋";
+        kiss.classList.add("kiss");
+        kiss.style.left = Math.random() * 100 + "vw";
+        kiss.style.top = Math.random() * 100 + "vh";
+        kiss.style.fontSize = (40 + Math.random() * 60) + "px";
+        document.body.appendChild(kiss);
+        setTimeout(() => kiss.remove(), 2500);
+      }, i * 40);
+    }
+  }
+
+  function startTimer(seconds) {
+    timeLeft = seconds;
+    statusText.textContent = "Time Left: " + timeLeft;
+
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      statusText.textContent = "Time Left: " + timeLeft;
+
+      if (timeLeft <= 10 && timeLeft > 0) {
+        document.body.classList.add("danger");
+        beepSound.play();
+      }
+
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        lock = true;
+        document.body.classList.remove("danger");
+        statusText.textContent = "HAHA L";
+        streak = 0;
+        streakDisplay.textContent = streak;
+      }
+    }, 1000);
+  }
+
+  function startGame(level) {
+    clearInterval(timerInterval);
+    document.body.classList.remove("danger");
+    grid.innerHTML = "";
+    firstCard = null;
+    lock = false;
+    matches = 0;
+    currentLevel = level;
+
+    let pairs = level === "easy" ? 8 :
+                level === "medium" ? 10 :
+                level === "hard" ? 12 : 16;
+
+    totalPairs = pairs;
+
+    const selected = allEmojis.slice(0, pairs);
+    const emojis = [...selected, ...selected].sort(() => 0.5 - Math.random());
+
+    grid.style.gridTemplateColumns =
+      level === "easy" ? "repeat(4, 90px)" :
+      level === "medium" ? "repeat(5, 80px)" :
+      level === "hard" ? "repeat(6, 70px)" :
+      "repeat(8, 60px)";
+
+    if (level === "hard") startTimer(45);
+    if (level === "veryhard") startTimer(30);
+
+    emojis.forEach(emoji => {
+      const card = document.createElement("div");
+      card.classList.add("card");
+      card.dataset.emoji = emoji;
+
+      card.innerHTML = `
+        <div class="card-inner">
+          <div class="card-front"></div>
+          <div class="card-back">${emoji}</div>
+        </div>
+      `;
+
+      card.addEventListener("click", () => {
+        if (lock || card.classList.contains("flipped")) return;
+
+        card.classList.add("flipped");
+
+        if (!firstCard) {
+          firstCard = card;
+        } else {
+          if (firstCard.dataset.emoji === card.dataset.emoji) {
+            matches++;
+            matchSound.play();
+            card.classList.add("matched");
+            firstCard.classList.add("matched");
+            firstCard = null;
+
+            if (matches === totalPairs) {
+              clearInterval(timerInterval);
+              document.body.classList.remove("danger");
+              statusText.textContent = "OKAY FINE YOU WIN 😒";
+
+              score += pairs * 10;
+              streak++;
+
+              scoreDisplay.textContent = score;
+              streakDisplay.textContent = streak;
+
+              if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("memoryHighScore", highScore);
+                highScoreDisplay.textContent = highScore;
+              }
+
+              showKiss(level);
+            }
+          } else {
+            lock = true;
+            setTimeout(() => {
+              card.classList.remove("flipped");
+              firstCard.classList.remove("flipped");
+              firstCard = null;
+              lock = false;
+            }, 600);
+          }
+        }
+      });
+
+      grid.appendChild(card);
+    });
+  }
+
+  function restartGame() {
+    if (currentLevel) startGame(currentLevel);
+  }
+</script>
+
+</body>
+</html>
